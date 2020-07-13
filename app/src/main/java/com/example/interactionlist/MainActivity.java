@@ -1,5 +1,6 @@
 package com.example.interactionlist;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
@@ -21,8 +22,10 @@ public class MainActivity extends AppCompatActivity {
     private ListView listView;
     private List<Map<String, String>> values;
     private BaseAdapter listContentAdapter;
+    private ArrayList<Integer> indexRemove = new ArrayList<>();
     public static final String APP_PREFERENCES_TEXT = "largeText";
     public static final String APP_PREFERENCES_KEY = "large_text";
+    private static final String KEY_BUNDLE = "oldBundle";
     SharedPreferences mSettings;
     String[] arrayContent;
     private SwipeRefreshLayout mySwipeLayout;
@@ -33,6 +36,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         mSettings = getSharedPreferences(APP_PREFERENCES_TEXT, MODE_PRIVATE);
         mySwipeLayout = findViewById(R.id.swipe_layout);
+        if (savedInstanceState != null) {
+            indexRemove = savedInstanceState.getIntegerArrayList(KEY_BUNDLE);
+        }
         if(!mSettings.contains(APP_PREFERENCES_KEY)) {
             SharedPreferences.Editor myEditor = mSettings.edit();
             myEditor.putString(APP_PREFERENCES_KEY, getString(R.string.large_text));
@@ -44,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
         mySwipeLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
+                indexRemove.clear();
                 createAdapter();
                 interactionList();
                 mySwipeLayout.setRefreshing(false);
@@ -56,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 values.remove(position);
+                indexRemove.add(position);
                 listContentAdapter.notifyDataSetChanged();
             }
         });
@@ -75,13 +83,24 @@ public class MainActivity extends AppCompatActivity {
 
     private List<Map<String, String>> prepareContent() {
         List<Map<String, String>> simpleAdapterContent = new ArrayList<>();
-        arrayContent = mSettings.getString(APP_PREFERENCES_KEY,"").split("\n\n");
-     for (String s : arrayContent) {
+        arrayContent = mSettings.getString(APP_PREFERENCES_KEY, "").split("\n\n");
+        for (String s : arrayContent) {
             Map<String, String> myMap = new HashMap<>();
             myMap.put("title", s);
             myMap.put("subtitle", String.valueOf(s.length()));
             simpleAdapterContent.add(myMap);
         }
+        if (indexRemove != null) {
+            for (Integer i : indexRemove) {
+                simpleAdapterContent.remove(i.intValue());
+            }
+        }
         return simpleAdapterContent;
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        outState.putIntegerArrayList(KEY_BUNDLE, indexRemove);
+        super.onSaveInstanceState(outState);
     }
 }
